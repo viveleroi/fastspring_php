@@ -1,10 +1,15 @@
 <?php
+/**
+ * @package  Peregrine
+ * @author   Michael Botsko, Trellis Development, LLC
+ * @license  Mozilla Public License, 1.1
+ *
+ * This library assists with building URLs and forms for integration
+ * with the payment services website, Fastspring.com.
+ */
 
 /**
- * 
- *
- * @todo cleanup this comment
- * @author botskonet
+ * @package Fastspring
  */
 class Fastspring {
 
