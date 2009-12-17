@@ -1,6 +1,6 @@
 <?php
 /**
- * @package  Peregrine
+ * @package  FastspringTest
  * @author   Michael Botsko, Trellis Development, LLC
  * @license  Mozilla Public License, 1.1
  *

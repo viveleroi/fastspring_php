@@ -1,6 +1,6 @@
 <?php
 /**
- * @package  Peregrine
+ * @package  Fastspring
  * @author   Michael Botsko, Trellis Development, LLC
  * @license  Mozilla Public License, 1.1
  *
@@ -49,7 +49,7 @@ class Fastspring {
 
 
 	/***********
-	 * PRIVATE MEMBER VARIABLES
+	 * PROTECTED MEMBER VARIABLES
 	 */
 
 	/**
@@ -70,16 +70,28 @@ class Fastspring {
 	 */
 	protected $protocol = 'https://';
 
-	
+
 	/**
 	 * Push a new parameter to the query string of the output url or to
 	 * the hidden fields of the form.
-	 * 
+	 *
 	 * @param string $key
 	 * @param mixed $value
+	 * @return boolean
+	 * @access public
 	 */
 	public function addParameter($key, $value){
-		$accepted = array('mode','referrer');
+		$accepted = array(
+						'mode',
+						'referrer',
+						'action',
+						'destination',
+						'contact_fname',
+						'contact_lname',
+						'contact_company',
+						'contact_email',
+						'contact_phone');
+
 		if(in_array($key, $accepted)){
 			$this->params[$key] = $value;
 			return true;
@@ -91,12 +103,13 @@ class Fastspring {
 	/**
 	 * Sets the link type and adjusts the protocol accordingly.
 	 *
-	 * @param <type> $type
-	 * @return <type>
+	 * @param string $type
+	 * @return boolean
+	 * @access public
 	 */
 	public function setLinktype($type){
 
-		$accepted = array('instant','product');
+		$accepted = array('instant','product','api');
 
 		if(in_array($type, $accepted)){
 
@@ -106,6 +119,8 @@ class Fastspring {
 				case 'instant':
 					$this->protocol = 'https://';
 					break;
+				case 'api':
+					$this->product = 'order';
 				case 'product':
 					$this->protocol = 'http://';
 					break;
@@ -115,10 +130,14 @@ class Fastspring {
 		return false;
 	}
 
-	
+
 	/**
-	 * <a href="https://sites.fastspring.com/surechoice/instant/autoandhealth?mode=test&referrer=1" target="_top">Auto and Health</a>
-	 * @param <type> $link_type
+	 * Generates a url for either the link or form action.
+	 *
+	 * @param string $product
+	 * @param string $link_type
+	 * @return string
+	 * @access public
 	 */
 	public function url($product = false, $link_type = false){
 
@@ -139,9 +158,7 @@ class Fastspring {
 		}
 
 		// Append any additional parameters
-		if(!empty($this->params)){
-			$url .= '?'.http_build_query($this->params);
-		}
+		$url .= $this->build_params('url');
 
 		return $url;
 
@@ -149,8 +166,43 @@ class Fastspring {
 
 
 	/**
-	 * <a href="https://sites.fastspring.com/surechoice/instant/autoandhealth?mode=test&referrer=1" target="_top">Auto and Health</a>
-	 * @param <type> $link_type
+	 * Builds the parameters to be passed. Query string form for URLs, hidden
+	 * field format for forms.
+	 *
+	 * @param string $request_type
+	 * @return string
+	 * @access private
+	 */
+	protected function build_params($request_type = 'url'){
+
+		$params = '';
+
+		if(!empty($this->params)){
+			if($this->link_type != 'api'){
+				$params = '?'.http_build_query($this->params);
+			} else {
+				if($request_type != 'url'){
+
+					$input = '<input type="hidden" name="%s" value="%s">'."\n";
+
+					foreach($this->params as $key => $value){
+						$params .= sprintf($input, $key, $value);
+					}
+				}
+			}
+		}
+
+		return $params;
+
+	}
+
+
+	/**
+	 * Generates a link directly to the URL.
+	 *
+	 * @param string $link_type
+	 * @return string
+	 * @access public
 	 */
 	public function link($text = false, $product = false, $link_type = false){
 		return sprintf($this->link_html, $this->url($product, $link_type), ($text ? $text : $product));
@@ -158,55 +210,131 @@ class Fastspring {
 
 
 	/**
-	 * Option 2: Add Product to Order and Checkout
-	 * <form method="POST" action="http://sites.fastspring.com/surechoice/product/autoandhealth?action=order" target="_top"><input type="submit" value="Purchase" /></form>
+	 * Generates a base form submission to the existing URLs
 	 *
-	 * Option 4: Shopping Cart - Add Product to Order
-	 * <form method="POST" action="http://sites.fastspring.com/surechoice/product/autoandhealth?action=add" target="_top"><input type="submit" value="Add to Order" /></form>
-	 *
-	 * Option 5: Shopping Cart - View Product Detail Page
-	 * <a href="http://sites.fastspring.com/surechoice/product/autoandhealth?action=adds" target="_top">Add to Order</a>
+	 * @param string $product
+	 * @param string $action
+	 * @param string $text
+	 * @return string
+	 * @access public
 	 */
+	public function form($product, $action = 'add', $text = 'Purchase'){
+
+		// Fprms seems to always reference the product link type
+		$this->setLinktype('product');
+
+		// Append the action parameter
+		$this->addParameter('action',$action);
+
+		// Build the form html
+		$html = '<form method="POST" action="%s"><input type="submit" value="%s" /></form>';
+		return sprintf($html, $this->url($product), $text);
+
+	}
+
 
 	/**
-	 * Option 6: Create Order API (Advanced)
+	 * Builds an advanced api create or update order form.
 	 *
-	 *
-	 *
-Parameter Notes
-
-    * action - Use the value "create" to always replace the order contents, or the value "update" to add / modify contents.
-    * destination - Controls the landing page and may be either "contents" or "checkout".
-    * product_X_path, product_X_quantity - Increment the value of X to pass in more than one product.
-    * mode - Optionally use a hidden input field with the name "mode" and value of "test" to activate test purchases.
-    * Optional Customer Information - Customer information may optionally be passed in via the parameters: contact_fname, contact_lname, contact_company, contact_email, contact_phone
-
-
-	 *
-	 *
-	 * Example Form with Quantity Box:
-	 * <form method="POST" action="http://sites.fastspring.com/surechoice/api/order">
-<input type="hidden" name="action" value="create"/>
-<input type="hidden" name="destination" value="contents"/>
-<p>
-<input type="hidden" name="product_1_path" value="/autoandhealth">
-<input type="text" name="product_1_quantity" value="0"/> Auto and Health
-</p>
-<p>
-<input type="submit" value="Order Now"/>
-	 *
-	 *
-	 * Example Form with Checkbox:
-	 * <form method="POST" action="http://sites.fastspring.com/surechoice/api/order">
-<input type="hidden" name="action" value="create"/>
-<input type="hidden" name="destination" value="contents"/>
-<p>
-  <input type="checkbox" name="product_1_path" value="/autoandhealth"/> Auto and Health
-</p>
-<p>
-<input type="submit" value="Order Now"/>
-</p>
+	 * @param array $products
+	 * @param string $style
+	 * @param string $action
+	 * @param string $destination
+	 * @param string $text
+	 * @return string
+	 * @access public
 	 */
-	
+	public function form_adv($products, $style = 'checkbox', $action = 'create', $destination = 'contents', $text = 'Purchase'){
+
+		$this->setLinktype('api');
+		$this->addParameter('action',$action);
+		$this->addParameter('destination',$destination);
+
+		// Build the form html
+		$html = '<form method="POST" action="%s">%s%s<input type="submit" value="%s" /></form>';
+
+		// Add the fields
+		$field_html = '';
+		switch($style){
+			case 'checkbox':
+				$field_html = $this->product_input_checkbox($products);
+				break;
+			case 'radio':
+				$field_html = $this->product_input_radio($products);
+				break;
+			case 'text':
+				$field_html = $this->product_input_text($products);
+				break;
+		}
+
+		return sprintf($html, $this->url(), $this->build_params('form'), $field_html, $text);
+
+	}
+
+
+	/**
+	 * Returns input textbox fields for the API creat form
+	 *
+	 * @param array $products
+	 * @return string
+	 * @access private
+	 */
+	protected function product_input_text($products){
+		$field = '<input type="hidden" name="product_%s_path" value="/%s"><input type="text" name="product_%1$s_quantity" value="0"/> %s<br />';
+		if(is_array($products)){
+
+			$field_html = '';
+			$i = 1;
+
+			foreach($products as $slug => $product){
+				$field_html .= sprintf($field, $i, $slug, $product);
+			}
+		}
+		return $field_html;
+	}
+
+
+	/**
+	 * Returns input checkbox fields for the API creat form
+	 *
+	 * @param array $products
+	 * @return string
+	 * @access private
+	 */
+	protected function product_input_checkbox($products){
+		$field = '<input type="checkbox" name="product_%s_path" value="/%s"/> %s<br />';
+		if(is_array($products)){
+
+			$field_html = '';
+			$i = 1;
+
+			foreach($products as $slug => $product){
+				$field_html .= sprintf($field, $i, $slug, $product);
+			}
+		}
+		return $field_html;
+	}
+
+
+	/**
+	 * Returns input radio fields for the API creat form
+	 *
+	 * @param array $products
+	 * @return string
+	 * @access private
+	 */
+	protected function product_input_radio($products){
+		$field = '<input type="radio" name="product_%s_path" group="products" value="/%s"/> %s<br />';
+		if(is_array($products)){
+
+			$field_html = '';
+			$i = 1;
+
+			foreach($products as $slug => $product){
+				$field_html .= sprintf($field, $i, $slug, $product);
+			}
+		}
+		return $field_html;
+	}
 }
 ?>

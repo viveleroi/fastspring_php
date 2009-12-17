@@ -1,0 +1,45 @@
+Fastspring.com Link/Form Helpers for PHP
+2009 Michael Botsko, Botsko.net, LLC & Trellis Development, LLC
+
+This class is currently in development but is open for use and contributions.
+
+
+
+Generating a link to a Fastspring product called "myproduct"
+----------
+
+$fs = new Fastspring('mycompany');
+$fs->link('myproduct);
+
+If you're developing, you may append the test parameter:
+
+$fs = new Fastspring('mycompany', 'test');
+$fs->link('myproduct);
+
+(You may also call $fs->url() directly to avoid any html)
+
+
+
+Generating a basic form to a Fastspring product called "myproduct"
+----------
+
+$fs = new Fastspring('mycompany');
+$fs->form('myproduct);
+
+
+
+Generating an advanced form to a Fastspring product called "myproduct"
+----------
+
+$products = array('myproduct'=>'My Product');
+
+$fs = new Fastspring('mycompany');
+$fs->form_adv($products);
+
+
+Other Methods Available
+----------
+
+addParameter - Adds a new query string or hidden input parameter
+
+setLinktype - Change between "instant" or "product" link types (URLs only)
