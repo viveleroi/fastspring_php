@@ -120,7 +120,8 @@ class Fastspring {
 					$this->protocol = 'https://';
 					break;
 				case 'api':
-					$this->product = 'order';
+					$this->product  = 'order';
+					$this->protocol = 'http://';
 				case 'product':
 					$this->protocol = 'http://';
 					break;
